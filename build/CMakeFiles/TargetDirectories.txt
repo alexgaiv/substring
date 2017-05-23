@@ -1,0 +1,4 @@
+C:/Users/HP/Documents/Visual Studio 2013/Projects/substring/build/CMakeFiles/substring.dir
+C:/Users/HP/Documents/Visual Studio 2013/Projects/substring/build/CMakeFiles/substring_test.dir
+C:/Users/HP/Documents/Visual Studio 2013/Projects/substring/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/HP/Documents/Visual Studio 2013/Projects/substring/build/CMakeFiles/ZERO_CHECK.dir

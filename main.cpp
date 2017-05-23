@@ -27,20 +27,28 @@ string random_string(size_t size)
 	return s;
 }
 
+struct TestParams
+{
+    int num_iters;
+    int start_len;
+    int d_len;
+    int substr_len;
+};
+
 template<class Func>
-void test_random_text(Func func, const char *filename, const char *title)
+void TestRandomText(Func func, const TestParams &params, const char *title, mglGraph &gr, const char *color)
 {
 	typedef std::chrono::duration<double, std::milli> duration;
 	duration elapsed;
 
-	const int num_iters = 100;
-	const int start_len = 100000;
-	const int d_len = 100000;
-	double dts[num_iters] = { };
+    const int num_iters = params.num_iters;
+    const int start_len = params.start_len;
+    const int d_len = params.d_len;
+    const int substr_len = params.substr_len;
 
-	int substr_len = 500;
+    std::vector<double> dts(num_iters);
+	
 	int text_len = start_len;
-
 	string text = random_string(text_len);
 
 	for (int i = 0; i < num_iters; i++)
@@ -53,8 +61,9 @@ void test_random_text(Func func, const char *filename, const char *title)
 		for (int k = 0; k < 5; k++)
 		{
 			auto start = high_resolution_clock::now();
-			func(text, substr);
+			int result = func(text, substr);
 			elapsed = high_resolution_clock::now() - start;
+            if (result != substr_pos) __debugbreak();
 			dt += elapsed.count();
 		}
 
@@ -67,39 +76,24 @@ void test_random_text(Func func, const char *filename, const char *title)
 		cout << (double)i  / num_iters * 100 << '%';
 	}
 
-	mglGraph gr;
 	mglData y;
-	y.Set(dts, num_iters);
-
-    gr.Title(title);
-	gr.SetRanges(start_len, text_len, 1, dts[num_iters - 1]);
-	gr.Label('x', "text length");
-	gr.Label('y', "time, ms");
-	gr.Axis();
-	gr.Plot(y);
-	gr.WriteBMP(filename);
+	y.Set(dts);
+    gr.AddLegend(title, color);
+	gr.Plot(y, color);
 }
 
 template<class Func>
-void test_real_text(Func func, const char *filename, const char *title)
+void TestRealText(Func func, const std::string &text, const TestParams &params, const char *title, mglGraph &gr, const char *color)
 {
 	typedef std::chrono::duration<double, std::milli> duration;
 	duration elapsed;
 
-	ifstream file("sample.txt");
-	if (!file) return;
-	
-	string text((std::istreambuf_iterator<char>)file, std::istreambuf_iterator<char>());
-	file.close();
+	const int num_iters = params.num_iters;
+	const int start_len = params.start_len;
+	const int d_len = params.d_len;
+    const int substr_len = params.substr_len;
 
-	const int num_iters = 30;
-	const int max_len = (int)text.size();
-	const int start_len = 100000;
-	const int d_len = (max_len - start_len) / num_iters;
-
-	double dts[num_iters] = { };
-
-	int substr_len = 500;
+    std::vector<double> dts(num_iters);
 	int text_len = start_len;
 
 	for (int i = 0; i < num_iters; i++)
@@ -120,39 +114,84 @@ void test_real_text(Func func, const char *filename, const char *title)
 		dts[i] = dt / 5.0;
 
 		text_len += d_len;
-		text += random_string(d_len);
 
 		system("cls");
 		cout << (int)((double)i / num_iters * 100) << '%';
 	}
 
-	mglGraph gr;
-	mglData y;
-	y.Set(dts, num_iters);
+    mglData y;
+    y.Set(dts);
+    gr.AddLegend(title, color);
+    gr.Plot(y, color);
+}
 
-    gr.Title(title);
-	gr.SetRanges(start_len, text_len, 1, dts[num_iters - 1]);
-	gr.Label('x', "text length");
-	gr.Label('y', "time, ms");
-	gr.Axis();
-	gr.Plot(y);
-	gr.WriteBMP(filename);
+void BuiltRandomTextPlot()
+{
+    mglGraph gr;
+    TestParams p;
+
+    p.num_iters = 10;
+    p.start_len = 10000000;
+    p.d_len = 10000000;
+    p.substr_len = 30;
+
+    gr.Title("Random text");
+    gr.SetRanges(p.start_len, p.start_len + p.num_iters * p.d_len, 60, 700);
+    gr.Label('x', "text length");
+    gr.Label('y', "time, ms");
+    gr.Axis();
+
+    auto rk_substr = [](const string &s, const string &ss) {
+        return rabin_karp_substr(s, ss);
+    };
+
+    TestRandomText(naive_substr, p, "Naive", gr, "r");
+    TestRandomText(kmp_substr, p, "KMP", gr, "g");
+    //TestRandomText(rk_substr, p, "Rabin-Karp", gr, "b");
+
+    gr.Legend();
+    gr.WriteBMP("plot/rand.bmp");
+}
+
+void BuildRealTextPlot()
+{
+    ifstream file("sample.txt");
+    if (!file) return;
+    string text((std::istreambuf_iterator<char>)file, std::istreambuf_iterator<char>());
+    file.close();
+
+    mglGraph gr;
+    TestParams p;
+
+    p.num_iters = 20;
+    p.start_len = 100000;
+    p.d_len = (text.size() - p.start_len) / p.num_iters;
+    p.substr_len = 500;
+
+    gr.Title("Real text");
+    gr.SetRanges(p.start_len, p.start_len + p.num_iters * p.d_len, 0, 100);
+    gr.Label('x', "text length");
+    gr.Label('y', "time, ms");
+    gr.Axis();
+
+    auto rk_substr = [](const string &s, const string &ss) {
+        return rabin_karp_substr(s, ss);
+    };
+
+    TestRealText(naive_substr, text, p, "Naive", gr, "r");
+    TestRealText(kmp_substr, text, p, "KMP", gr, "g");
+    //TestRealText(rk_substr, text, p, "Rabin-Karp (real)", gr, "b");
+
+    gr.Legend();
+    gr.WriteBMP("plot/real.bmp");
 }
 
 int main()
 {
 	srand((unsigned)time(NULL));
 
-	auto rk_substr = [](const string &s, const string &ss) {
-		return rabin_karp_substr(s, ss);
-	};
-
-	test_random_text(naive_substr, "plot/naive_rand.bmp", "Naive (random)");
-	test_random_text(kmp_substr, "plot/kmp_rand.bmp", "KMP (random)");
-	test_random_text(rk_substr, "plot/rk_rand.bmp", "Rabin-Karp (random)");
-	test_real_text(naive_substr, "plot/naive_real.bmp", "Naive (real)");
-	test_real_text(kmp_substr, "plot/kmp_real.bmp", "KMP (real)");
-	test_real_text(rk_substr, "plot/rk_real.bmp", "Rabin-Karp (real)");
+    BuiltRandomTextPlot();
+    BuildRealTextPlot();
 
 	cout << "\nend";
 

@@ -30,16 +30,16 @@ int naive_substr(const string &str, const string &substr)
 	size_t n = str.size();
 	size_t m = substr.size();
 
-	for (size_t i = 0; i < n - m + 1; i++)
-	{
-		for (size_t j = 0; j < m; j++)
-		{
-			if (str[i + j] != substr[j])
-				break;
-			else if (j == m - 1)
-				return i;
-		}
-	}
+    for (size_t i = 0; i < n - m + 1; i++)
+    {
+        for (size_t j = 0; j < m; j++)
+        {
+            if (str[i + j] != substr[j])
+                break;
+            else if (j == m - 1)
+                return i;
+        }
+    }
 
 	return -1;
 }
@@ -73,6 +73,9 @@ int rabin_karp_substr(const std::string &str, const std::string &substr, int q)
 	size_t n = str.size();
 	size_t m = substr.size();
 
+    //int a = (rand() + 1) % (q - 2);
+    //int am = static_cast<int>(pow(a, m - 1));
+
 	const int d = 256;
 	int h = 1;
 	for (size_t i = 0; i < m - 1; i++) {
@@ -83,19 +86,30 @@ int rabin_karp_substr(const std::string &str, const std::string &substr, int q)
 
 	for (size_t i = 0; i < m; i++)
 	{
-		hsubstr = (hsubstr * d + substr[i]) % q;
-		hstr = (hstr * d + str[i]) % q;
+        //int b = static_cast<int>(pow(a, i));
+		//hsubstr = (hsubstr * d + substr[i] * b) % q;
+		//hstr = (hstr * d + str[i] * b) % q;
+        hsubstr = (hsubstr * d + substr[i]) % q;
+        hstr = (hstr * d + str[i]) % q;
 	}
 
 	for (size_t i = 0; i < n - m + 1; i++)
 	{
-		if (hsubstr == hstr &&
-			substr == str.substr(i, m))
+		if (hsubstr == hstr)
 		{
-			return i;
+            bool found = true;
+            for (size_t j = 0; j < m; j++)
+            {
+                if (str[i + j] != substr[j]) {
+                    found = false;
+                    break;
+                }
+            }
+            if (found) return i;
 		}
 
-		hstr = (d * (hstr - str[i]*h) + str[i + m]) % q;
+		//hstr = (d * (hstr - str[i]*h) + str[i + m]*am) % q;
+        hstr = (d * (hstr - str[i] * h) + str[i + m]) % q;
 		if (hstr < 0) hstr += q;
 	}
 
